@@ -1,0 +1,7 @@
+*.o
+*.json
+*.save
+*.pdf
+wfc
+build/
+.cache/
