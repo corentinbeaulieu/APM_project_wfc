@@ -1,4 +1,5 @@
 #include "bitfield.h"
+#include <stdbool.h>
 
 /// Copy-Pasta from internet
 static inline uint64_t
@@ -57,3 +58,20 @@ bitfield_only_nth_set(uint64_t x, uint8_t n)
     return 1llu << find_nth_set_bit(x, n);
 }
 
+// Very useful
+uint8_t
+bitfield_to_integer(const uint64_t bitfield)
+{
+    uint8_t ret   = 0;
+    uint64_t mask = 1;
+    bool quit     = false;
+
+    while (quit != true) {
+        ret++;
+        quit |= bitfield & mask;
+        // Oupsy Doopsy
+        mask <<= 1;
+    }
+
+    return ret;
+}

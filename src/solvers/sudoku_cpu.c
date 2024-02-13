@@ -75,11 +75,11 @@ solve_cpu(wfc_blocks_ptr blocks)
     /* Convert the grid in readable values */
     for (uint32_t x = 0; x < blocks->block_side; ++x) {
         for (uint32_t y = 0; y < blocks->block_side; ++y) {
-            // uint32_t gx = 0, gy = 0;
-            // uint64_t *addr = blk_at(blocks, gx, gy, x, y);
-            // uint64_t state = *addr;
-            // uint8_t popcout = bitfield_count(state);
-            // *addr           = popcout;
+            const uint32_t gx = 0, gy = 0;
+            uint64_t *addr            = blk_at(blocks, gx, gy, x, y);
+            const uint64_t state      = *addr;
+            const uint64_t real_value = bitfield_to_integer(state);
+            *addr                     = real_value;
         }
     }
 

@@ -39,3 +39,6 @@ uint64_t bitfield_only_nth_set(uint64_t, uint8_t);
 
 /// Prints the bitfield to the file descriptor.
 void bitfield_print(FILE *const, uint64_t);
+
+/// Converts a bitfield state to an integer.
+uint8_t bitfield_to_integer(const uint64_t bitfield);

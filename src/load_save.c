@@ -84,6 +84,15 @@ to_u64(const char *string)
     return (uint32_t)integer;
 }
 
+// Convert string to a binary state
+static inline uint64_t
+to_binary_state(const char *string)
+{
+    uint64_t integer = to_u64(string);
+
+    return 1llu << (integer - 1);
+}
+
 wfc_blocks_ptr
 wfc_load(uint64_t seed, const char *path)
 {
@@ -159,7 +168,7 @@ wfc_load(uint64_t seed, const char *path)
             exit(EXIT_FAILURE);
         }
 
-        const uint64_t collapsed   = to_u64(str_state);
+        const uint64_t collapsed   = to_binary_state(str_state);
         *blk_at(ret, gx, gy, x, y) = collapsed;
         blk_propagate(ret, gx, gy, collapsed);
         grd_propagate_column(ret, gx, gy, x, y, collapsed);
