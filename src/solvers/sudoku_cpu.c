@@ -43,7 +43,7 @@ solve_cpu(wfc_blocks_ptr blocks)
         // 5. Fixed point
         iteration += 1;
         if (!changed) {
-            printf("Not changed\n");
+            fprintf(stderr, "Not changed\n");
             return false;
         }
     }

@@ -187,35 +187,40 @@ wfc_load(uint64_t seed, const char *path)
 void
 wfc_save_into(const wfc_blocks_ptr blocks, const char data[], const char folder[])
 {
-    char destination[1024] = { 0 };
-    const size_t data_len  = strlen(data);
-    const char *file_name  = &data[data_len - 1];
-    while (file_name != data && file_name[0] != '/') {
-        file_name -= 1;
-    }
-    const char *file_end = strchr(file_name, '.');
-    long length          = (file_end - file_name);
-    if (length >= 1024) {
-        length = 1023;
-    } else if (length < 0) {
-        length = 0;
+    const size_t data_len = strlen(data);
+    FILE *restrict f      = stdout;
+
+    if (folder != NULL) {
+        char destination[1024] = { 0 };
+        const char *file_name  = &data[data_len - 1];
+        while (file_name != data && file_name[0] != '/') {
+            file_name -= 1;
+        }
+        const char *file_end = strchr(file_name, '.');
+        long length          = (file_end - file_name);
+        if (length >= 1024) {
+            length = 1023;
+        } else if (length < 0) {
+            length = 0;
+        }
+
+        const size_t folder_len = strlen(folder);
+        if (folder[folder_len - 1] == '/' && file_name[0] == '/') {
+            snprintf(destination, 1023, "%.*s%.*s.%lu.save", (int)(folder_len - 1), folder, (int)length,
+                     file_name, blocks->states[0]);
+        } else if ((folder[folder_len - 1] == '/' && file_name[0] != '/') ||
+                   (folder[folder_len - 1] != '/' && file_name[0] == '/')) {
+            snprintf(destination, 1023, "%s%.*s.%lu.save", folder, (int)length, file_name,
+                     blocks->states[0]);
+        } else {
+            snprintf(destination, 1023, "%s/%.*s.%lu.save", folder, (int)length, file_name,
+                     blocks->states[0]);
+        }
+        fprintf(stdout, "save result to file: %s\n", destination);
+
+        f = fopen(destination, "w");
     }
 
-    const size_t folder_len = strlen(folder);
-    if (folder[folder_len - 1] == '/' && file_name[0] == '/') {
-        snprintf(destination, 1023, "%.*s%.*s.%lu.save", (int)(folder_len - 1), folder, (int)length,
-                 file_name, blocks->states[0]);
-    } else if ((folder[folder_len - 1] == '/' && file_name[0] != '/') ||
-               (folder[folder_len - 1] != '/' && file_name[0] == '/')) {
-        snprintf(destination, 1023, "%s%.*s.%lu.save", folder, (int)length, file_name,
-                 blocks->states[0]);
-    } else {
-        snprintf(destination, 1023, "%s/%.*s.%lu.save", folder, (int)length, file_name,
-                 blocks->states[0]);
-    }
-    fprintf(stdout, "save result to file: %s\n", destination);
-
-    FILE *restrict f = fopen(destination, "w");
     if (NULL == f) {
         fprintf(stderr, "failed to open file: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
@@ -249,6 +254,8 @@ wfc_save_into(const wfc_blocks_ptr blocks, const char data[], const char folder[
         }
     }
 
-    fprintf(stdout, "saved successfully %lu states\n", ends);
-    fclose(f);
+    if (folder != NULL) {
+        fprintf(stdout, "saved successfully %lu states\n", ends);
+        fclose(f);
+    }
 }

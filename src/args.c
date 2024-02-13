@@ -274,6 +274,10 @@ wfc_parse_args(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    if (seeds == NULL) {
+        seeds = seeds_list_push_item(seeds, (seed_item){ .type = seed_item_single, .content.single = 0 });
+    }
+
     return (wfc_args){
         .data_file     = argv[optind],
         .seeds         = seeds,

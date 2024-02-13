@@ -1,67 +1,62 @@
 #define _GNU_SOURCE
 
-#include "bitfield.h"
 #include "wfc.h"
 
-#include <float.h>
 #include <stdio.h>
-#include <math.h>
 #include <omp.h>
-#include <pthread.h>
+#include <stdatomic.h>
 
 int
-main(int argc, char **argv)
+main(int argc, char *argv[])
 {
     omp_set_dynamic(false);
 
     wfc_args args             = wfc_parse_args(argc, argv);
     const wfc_blocks_ptr init = wfc_load(0, args.data_file);
 
-    int quit                 = false;
-    uint64_t iterations      = 0;
-    wfc_blocks_ptr blocks    = NULL;
-    pthread_mutex_t seed_mtx = PTHREAD_MUTEX_INITIALIZER;
+    _Atomic unsigned char quit  = false;
+    _Atomic uint64_t iterations = 0;
+    wfc_blocks_ptr blocks       = NULL;
 
-    int *volatile const quit_ptr            = &quit;
-    uint64_t *volatile const iterations_ptr = &iterations;
-
+    const uint64_t num_threads    = args.parallel;
     const uint64_t max_iterations = count_seeds(args.seeds);
     const double start            = omp_get_wtime();
 
-    while (!*quit_ptr) {
-        pthread_mutex_lock(&seed_mtx);
-        uint64_t next_seed       = 0;
-        const bool has_next_seed = try_next_seed(&args.seeds, &next_seed);
-        pthread_mutex_unlock(&seed_mtx);
+#pragma omp parallel for num_threads(num_threads)
+    for (size_t iter = 0; iter < max_iterations; iter++) {
+        if (atomic_load(&quit) == true)
+            continue;
 
-        if (!has_next_seed) {
-            __atomic_fetch_or(&quit, true, __ATOMIC_SEQ_CST);
+        bool has_next_seed = false;
+        uint64_t next_seed = 0;
+
+#pragma omp critical
+        {
+            has_next_seed = try_next_seed(&args.seeds, &next_seed);
+        }
+
+        if (has_next_seed == false) {
+            atomic_fetch_or(&quit, true);
             fprintf(stderr, "no more seed to try\n");
-            break;
+            continue;
         }
 
         wfc_clone_into(&blocks, next_seed, init);
         const bool solved = args.solver(blocks);
-        __atomic_add_fetch(iterations_ptr, 1, __ATOMIC_SEQ_CST);
+        atomic_fetch_add(&iterations, 1);
 
-        if (solved && args.output_folder != NULL) {
-            __atomic_fetch_or(quit_ptr, true, __ATOMIC_SEQ_CST);
-            fputc('\n', stdout);
+        if (solved == true && atomic_fetch_or(&quit, solved) == false) {
+            if (args.output_folder != NULL)
+                fputc('\n', stdout);
+            else
+                fputs("\nsuccess with result:\n", stdout);
+
             wfc_save_into(blocks, args.data_file, args.output_folder);
-        }
-
-        else if (solved) {
-            __atomic_fetch_or(quit_ptr, true, __ATOMIC_SEQ_CST);
-            fputs("\nsuccess with result:\n", stdout);
-            abort(); // TODO
-        }
-
-        else if (!*quit_ptr) {
-            fprintf(stdout, "\r%.2f%% -> %.2fs",
-                    ((double)(*iterations_ptr) / (double)(max_iterations)) * 100.0,
-                    omp_get_wtime() - start);
         }
     }
 
+    fprintf(stdout, "\r%.2f%% -> %.2fs",
+            ((double)(atomic_load(&iterations)) / (double)(max_iterations)) * 100.0,
+            omp_get_wtime() - start);
     return 0;
 }
