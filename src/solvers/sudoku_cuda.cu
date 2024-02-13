@@ -10,5 +10,6 @@
 bool
 solve_cuda(wfc_blocks_ptr blocks)
 {
+    (void)blocks;
     return false;
 }

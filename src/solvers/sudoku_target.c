@@ -8,5 +8,6 @@
 bool
 solve_target(wfc_blocks_ptr blocks)
 {
+    (void)blocks;
     return false;
 }

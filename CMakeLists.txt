@@ -31,7 +31,7 @@ target_compile_options(wfc PRIVATE -g -O2 -pthread -fopenmp -std=c17)
 target_compile_options(wfc PRIVATE
     -Wall -Wextra -pedantic -Werror
     -Wshadow
-    -Wcast-align -Wconversion -Wsign-conversion -Wdouble-promotion
+    -Wcast-align -Wconversion -Wno-sign-conversion -Wdouble-promotion
     -Wunused-variable
     -Wmisleading-indentation
     -Wnull-dereference

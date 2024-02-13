@@ -95,9 +95,9 @@ list_pop(seeds_list *restrict *const list_ptr)
     seeds_list *restrict list = *list_ptr;
     if (NULL == list) {
         return;
-    } else if (list->size >= 2) {
+    } else if (list->count >= 2) {
         memmove(&list->items[0], &list->items[1], (list->count - 1) * sizeof(seed_item));
-        list->size -= 1;
+        list->count -= 1;
     } else {
         free(list);
         *list_ptr = NULL;

@@ -8,5 +8,6 @@
 bool
 solve_openmp(wfc_blocks_ptr blocks)
 {
+    (void)blocks;
     return false;
 }

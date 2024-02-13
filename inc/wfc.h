@@ -31,19 +31,39 @@ void wfc_save_into(const wfc_blocks_ptr, const char data[], const char folder[])
 static inline uint64_t
 wfc_control_states_count(uint64_t grid_size, uint64_t block_size)
 {
-    return 0;
+    /*
+     * grid_size * grid_size is the number of blocks in the grid
+     * block_size * block_size is the number of states in each block
+     */
+    return grid_size * grid_size * block_size * block_size;
 }
 
 static inline uint64_t *
 grd_at(wfc_blocks_ptr blocks, uint32_t gx, uint32_t gy)
 {
-    return 0;
+    const uint64_t bs     = blocks->block_side * blocks->block_side;
+    const uint64_t blkcnt = bs;
+
+    /*
+     * gs is the number of states in one block
+     *
+     * Skipping gx lines: gx * blocks->grid_side * bs
+     * Skipping gy columns: gy * bs
+     */
+    return blocks->states + blkcnt + blocks->grid_side * bs * gx + gy * bs;
 }
 
 static inline uint64_t *
 blk_at(wfc_blocks_ptr blocks, uint32_t gx, uint32_t gy, uint32_t x, uint32_t y)
 {
-    return 0;
+    // Getting the pointer to the start of the block
+    uint64_t *start = grd_at(blocks, gx, gy);
+
+    /*
+     * Skipping x lines: x * blocks->block_side
+     * Skipping y columns: y
+     */
+    return start + blocks->block_side * x + y;
 }
 
 // Printing functions
