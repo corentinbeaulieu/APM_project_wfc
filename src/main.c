@@ -17,15 +17,21 @@ main(int argc, char *argv[])
     _Atomic unsigned char quit  = false;
     _Atomic uint64_t iterations = 0;
     wfc_blocks_ptr blocks       = NULL;
+    wfc_blocks_ptr final_result = NULL;
 
     const uint64_t num_threads    = args.parallel;
     const uint64_t max_iterations = count_seeds(args.seeds);
     const double start            = omp_get_wtime();
 
-#pragma omp parallel for num_threads(num_threads)
+#pragma omp parallel for num_threads(num_threads) firstprivate(blocks) shared(quit, iterations, init, final_result)
     for (size_t iter = 0; iter < max_iterations; iter++) {
-        if (atomic_load(&quit) == true)
+        if (atomic_load(&quit) == true) {
+            if (blocks) {
+                free(blocks);
+                blocks = NULL;
+            }
             continue;
+        }
 
         bool has_next_seed = false;
         uint64_t next_seed = 0;
@@ -36,7 +42,7 @@ main(int argc, char *argv[])
         }
 
         if (has_next_seed == false) {
-            atomic_fetch_or(&quit, true);
+            //atomic_fetch_or(&quit, true);
             fprintf(stderr, "no more seed to try\n");
             continue;
         }
@@ -46,16 +52,21 @@ main(int argc, char *argv[])
         atomic_fetch_add(&iterations, 1);
 
         if (solved == true && atomic_fetch_or(&quit, solved) == false) {
-            if (args.output_folder != NULL)
-                fputc('\n', stdout);
-            else
-                fputs("\nsuccess with result:\n", stdout);
-
-            wfc_save_into(blocks, args.data_file, args.output_folder);
+            wfc_clone_into(&final_result, blocks->states[0], blocks);
         }
     }
+    if (final_result) {
+        if (args.output_folder != NULL)
+            fputc('\n', stdout);
+        else
+            fputs("\nsuccess with result:\n", stdout);
 
-    fprintf(stdout, "\r%.2f%% -> %.2fs",
+        printf("thread %d:\nseed: %lu\n", omp_get_thread_num(), final_result->states[0]);
+
+        wfc_save_into(final_result, args.data_file, args.output_folder);
+    }
+
+    fprintf(stdout, "\r%.2f%% -> %.16f s\n",
             ((double)(atomic_load(&iterations)) / (double)(max_iterations)) * 100.0,
             omp_get_wtime() - start);
     return 0;

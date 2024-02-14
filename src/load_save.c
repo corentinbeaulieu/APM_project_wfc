@@ -72,7 +72,7 @@ to_u32(const char *string)
     return (uint32_t)integer;
 }
 
-static inline uint32_t
+static inline uint64_t
 to_u64(const char *string)
 {
     char *end               = NULL;
@@ -81,7 +81,7 @@ to_u64(const char *string)
         fprintf(stderr, "expected positive integer, got %lld\n", integer);
         exit(EXIT_FAILURE);
     }
-    return (uint32_t)integer;
+    return (uint64_t)integer;
 }
 
 // Convert string to a binary state
@@ -219,11 +219,11 @@ wfc_save_into(const wfc_blocks_ptr blocks, const char data[], const char folder[
         fprintf(stdout, "save result to file: %s\n", destination);
 
         f = fopen(destination, "w");
-    }
 
-    if (NULL == f) {
-        fprintf(stderr, "failed to open file: %s\n", strerror(errno));
-        exit(EXIT_FAILURE);
+        if (NULL == f) {
+            fprintf(stderr, "failed to open file: %s\n", strerror(errno));
+            exit(EXIT_FAILURE);
+        }
     }
 
     if (fprintf(f, "grid:  %hhu\n", blocks->grid_side) < 0) {

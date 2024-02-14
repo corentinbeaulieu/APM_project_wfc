@@ -1,7 +1,8 @@
 #include "bitfield.h"
 #include <stdbool.h>
 
-/// Copy-Pasta from internet
+/** Get the nth bit to one of the bitfield
+ */
 static inline uint64_t
 find_nth_set_bit(uint64_t mask, uint64_t n)
 {
@@ -52,13 +53,20 @@ find_nth_set_bit(uint64_t mask, uint64_t n)
     return r;
 }
 
+/** Extract the nth bit to one from a given bitfield.
+ *  The output only contains the bit.
+ */
 uint64_t
 bitfield_only_nth_set(uint64_t x, uint8_t n)
 {
     return 1llu << find_nth_set_bit(x, n);
 }
 
-// Very useful
+/** Given a bitfield, this function returns the index of the
+ *  least significiant bit to one starting from 1.
+ *  It is use to convert a final bitfield to a value comprehensible
+ *  by humans.
+ */
 uint8_t
 bitfield_to_integer(const uint64_t bitfield)
 {

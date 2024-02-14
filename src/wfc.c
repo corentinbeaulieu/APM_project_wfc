@@ -68,7 +68,7 @@ entropy_compute(uint64_t state)
      * The state with the lowest entropy is the one that will 
      * be collapsed first.
      */
-    uint8_t popcount = bitfield_count(state);
+    uint8_t popcount = (uint8_t)__builtin_popcountll(state);
 
     if (popcount == 1)
         return UINT8_MAX; // The state is set

@@ -77,7 +77,6 @@ seeds_list_push_item(seeds_list *restrict list, seed_item item)
         list->size               = new_list_size;
         list->items[list->count] = item;
         list->count += 1;
-        abort();
     }
 
     // Already exists, don't need to reallocate
