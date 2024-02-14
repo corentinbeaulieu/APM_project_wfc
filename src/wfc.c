@@ -129,100 +129,121 @@ blk_min_entropy(const wfc_blocks_ptr blocks, uint32_t gx, uint32_t gy)
     return ret;
 }
 
-// static inline uint64_t
-// blk_filter_mask_for_column(wfc_blocks_ptr blocks,
-//                            uint32_t gy, uint32_t y,
-//                            uint64_t collapsed)
-// {
-//     /*
-//      * Compute the mask for the column.
-//      * The mask is the OR of all the states that are not collapsed.
-//      */
-//     uint64_t mask = 0;
-//
-//     // Slide over the column
-//     for (uint32_t gx = 0; gx < blocks->grid_side; ++gx) {
-//         for (uint32_t x = 0; x < blocks->block_side; ++x) {
-//             const uint64_t state = *blk_at(blocks, gx, gy, x, y);
-//
-//             // Skip the collapsed states
-//             mask |= state & ~collapsed;
-//         }
-//     }
-//
-//     //
-//     return mask;
-// }
+entropy_location
+grd_min_entropy(const wfc_blocks_ptr blocks)
+{
+    entropy_location ret = { 0 };
+    ret.entropy          = UINT8_MAX;
 
-// static inline uint64_t
-// blk_filter_mask_for_row(wfc_blocks_ptr blocks,
-//                         uint32_t gx, uint32_t x,
-//                         uint64_t collapsed)
-// {
-//     /*
-//      * Compute the mask for the row.
-//      * The mask is the OR of all the states that are not collapsed.
-//      */
-//     uint64_t mask = 0;
-//
-//     // Slide over the row
-//     for (uint32_t gy = 0; gy < blocks->grid_side; ++gy) {
-//         for (uint32_t y = 0; y < blocks->block_side; ++y) {
-//             const uint64_t state = *blk_at(blocks, gx, gy, x, y);
-//
-//             // Skip the collapsed states
-//             mask |= state & ~collapsed;
-//         }
-//     }
-//
-//     //
-//     return mask;
-// }
+    for (uint32_t gx = 0; gx < blocks->grid_side; ++gx) {
+        for (uint32_t gy = 0; gy < blocks->grid_side; ++gy) {
+            entropy_location tmp = blk_min_entropy(blocks, gx, gy);
 
-// static inline uint64_t
-// blk_filter_mask_for_block(wfc_blocks_ptr blocks,
-//                           uint32_t gy, uint32_t gx,
-//                           uint64_t collapsed)
-// {
-//     /*
-//      * Compute the mask for the block.
-//      * The mask is the OR of all the states that are not collapsed.
-//      */
-//     uint64_t mask = 0;
-//
-//     // Slide over the block
-//     for (uint32_t y = 0; y < blocks->block_side; ++y) {
-//         for (uint32_t x = 0; x < blocks->block_side; ++x) {
-//             const uint64_t state = *blk_at(blocks, gx, gy, x, y);
-//
-//             // Skip the collapsed states
-//             mask |= state & ~collapsed;
-//         }
-//     }
-//
-//     //
-//     return mask;
-// }
+            if (tmp.entropy < ret.entropy) {
+                ret                 = tmp;
+                ret.grid_location.x = gx;
+                ret.grid_location.y = gy;
+            }
+        }
+    }
+
+    return ret;
+}
 
 bool
-grd_check_error_in_column(wfc_blocks_ptr blocks, uint32_t gx)
+grd_check_error(wfc_blocks_ptr blocks)
+{
+    // All the blocks
+    for (uint32_t gy = 0; gy < blocks->grid_side; ++gy)
+        for (uint32_t gx = 0; gx < blocks->grid_side; ++gx)
+            if (blk_check_error(blocks, gx, gy))
+                return true;
+
+    // All the rows
+    for (uint32_t gy = 0; gy < blocks->grid_side; ++gy)
+        if (grd_check_error_in_row(blocks, gy))
+            return true;
+
+    // All the columns
+    for (uint32_t gx = 0; gx < blocks->grid_side; ++gx)
+        if (grd_check_error_in_column(blocks, gx))
+            return true;
+
+    return false;
+}
+
+bool
+blk_check_error(wfc_blocks_ptr blocks, uint32_t gx, uint32_t gy)
+{
+    uint64_t seen = 0;
+    for (uint32_t y = 0; y < blocks->block_side; ++y) {
+        for (uint32_t x = 0; x < blocks->block_side; ++x) {
+            const uint64_t state   = *blk_at(blocks, gx, gy, x, y);
+            const uint8_t popcount = bitfield_count(state);
+
+            // Skip non final states
+            if (popcount != 1)
+                continue;
+
+            // Error check
+            if (seen & state)
+                return true;
+
+            // Saving the state
+            seen |= state;
+        }
+    }
+
+    // No error
+    return false;
+}
+
+bool
+grd_check_error_in_row(wfc_blocks_ptr blocks, uint32_t gy)
 {
     for (uint32_t y = 0; y < blocks->block_side; ++y) {
         uint64_t seen = 0;
-        for (uint32_t gy = 0; gy < blocks->grid_side; ++gy) {
+        for (uint32_t gx = 0; gx < blocks->grid_side; ++gx) {
             for (uint32_t x = 0; x < blocks->block_side; ++x) {
                 const uint64_t state   = *blk_at(blocks, gx, gy, x, y);
                 const uint8_t popcount = bitfield_count(state);
 
-                // Not assigned ?
+                // Skip non final states
                 if (popcount != 1)
                     continue;
 
-                // Error
-                if (seen & state) {
-                    printf("failed at: %lu %lu\n", state, seen);
+                // Error check
+                if (seen & state)
                     return true;
+
+                // Saving the state
+                seen |= state;
+            }
+        }
+    }
+
+    // No error
+    return false;
+}
+
+bool
+grd_check_error_in_column(wfc_blocks_ptr blocks, uint32_t gx)
+{
+    for (uint32_t x = 0; x < blocks->block_side; ++x) {
+        uint64_t seen = 0;
+        for (uint32_t gy = 0; gy < blocks->grid_side; ++gy) {
+            for (uint32_t y = 0; y < blocks->block_side; ++y) {
+                const uint64_t state   = *blk_at(blocks, gx, gy, x, y);
+                const uint8_t popcount = bitfield_count(state);
+
+                // Skip non final states
+                if (popcount != 1) {
+                    continue;
                 }
+
+                // Error check
+                if (seen & state)
+                    return true;
 
                 // Saving the state
                 seen |= state;

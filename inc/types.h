@@ -14,6 +14,7 @@ typedef struct {
 
 typedef struct {
     vec2 location;
+    vec2 grid_location;
     uint8_t entropy;
 
     uint8_t _1;

@@ -230,13 +230,22 @@ wfc_save_into(const wfc_blocks_ptr blocks, const char data[], const char folder[
         exit(EXIT_FAILURE);
     }
 
-    const uint64_t starts = wfc_control_states_count(blocks->grid_side, blocks->block_side),
-                   ends   = blocks->grid_side * blocks->grid_side * blocks->block_side *
+    const uint64_t ends = blocks->grid_side * blocks->grid_side * blocks->block_side *
                           blocks->block_side;
-    for (uint64_t i = 0; i < ends; i += 1) {
-        if (fprintf(f, "%lu\n", blocks->states[starts + i]) < 0) {
-            fprintf(stderr, "failed to write: %s\n", strerror(errno));
-            exit(EXIT_FAILURE);
+    for (uint32_t gx = 0; gx < blocks->grid_side; gx++) {
+        for (uint32_t gy = 0; gy < blocks->grid_side; gy++) {
+            for (uint32_t x = 0; x < blocks->block_side; x++) {
+                for (uint32_t y = 0; y < blocks->block_side; y++) {
+                    const uint64_t state      = *blk_at(blocks, gx, gy, x, y);
+                    const uint64_t real_value = bitfield_to_integer(state);
+
+                    if (fprintf(f, "%2lu ", real_value) < 0) {
+                        fprintf(stderr, "failed to write: %s\n", strerror(errno));
+                        exit(EXIT_FAILURE);
+                    }
+                }
+            }
+            fprintf(f, "\n");
         }
     }
 

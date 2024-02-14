@@ -72,6 +72,7 @@ void grd_print(FILE *const, const wfc_blocks_ptr block);
 
 // Entropy functions
 entropy_location blk_min_entropy(const wfc_blocks_ptr block, uint32_t gx, uint32_t gy);
+entropy_location grd_min_entropy(const wfc_blocks_ptr blocks);
 uint8_t entropy_compute(uint64_t);
 uint64_t entropy_collapse_state(uint64_t, uint32_t, uint32_t, uint32_t, uint32_t, uint64_t, uint64_t);
 
@@ -82,6 +83,9 @@ void grd_propagate_row(wfc_blocks_ptr, uint32_t, uint32_t, uint32_t, uint32_t, u
 
 // Check functions
 bool grd_check_error_in_column(wfc_blocks_ptr, uint32_t);
+bool grd_check_error_in_row(wfc_blocks_ptr blocks, uint32_t gy);
+bool blk_check_error(wfc_blocks_ptr blocks, uint32_t gy, uint32_t gx);
+bool grd_check_error(wfc_blocks_ptr blocks);
 
 // Solvers
 bool solve_cpu(wfc_blocks_ptr);
