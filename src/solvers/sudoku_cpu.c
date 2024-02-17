@@ -1,9 +1,11 @@
 #define _GNU_SOURCE
 
-#include "bitfield.h"
 #include "wfc.h"
 
 #include <omp.h>
+
+void
+grk_recompute(wfc_blocks_ptr blocks);
 
 bool
 solve_cpu(wfc_blocks_ptr blocks)
@@ -25,20 +27,19 @@ solve_cpu(wfc_blocks_ptr blocks)
         changed                       = state != new_state;
 
         // 2. Propagate
-        blk_propagate(blocks, gx, gy, new_state);
-        grd_propagate_row(blocks, gx, gy, x, y, new_state);
-        grd_propagate_column(blocks, gx, gy, x, y, new_state);
+        grk_recompute(blocks);
 
         // 3. Check Error
         if (grd_check_error(blocks)) {
-            printf(" Error at iteration %lu\n", iteration);
+            fprintf(stderr, " Error at iteration %lu\n", iteration);
             return false;
         }
 
         // 4. Check for completed grid
-        const uint8_t popcount = bitfield_count(state);
-        if (popcount == 1)
+        const uint8_t popcount = (uint8_t)__builtin_popcountll(state);
+        if (popcount == 1) {
             break;
+        }
 
         // 5. Fixed point
         iteration += 1;

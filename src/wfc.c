@@ -8,8 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
-#include <limits.h>
-#include <errno.h>
 #include <string.h>
 #include <strings.h>
 
@@ -44,7 +42,7 @@ entropy_collapse_state(uint64_t state,
      */
 
     // Number of states
-    const uint8_t popcount = bitfield_count(state);
+    const uint8_t popcount = (uint8_t)__builtin_popcountll(state);
 
     // Random number
 #define COMBINE(a, b) (a) ^ ((b) + 0x517cc1b727220a95 + ((a) << 6) + ((a) >> 2))
@@ -52,9 +50,9 @@ entropy_collapse_state(uint64_t state,
     random_number      = COMBINE(digest64[0], digest64[1]);
 
     // Select a random state
-    uint8_t index = ((uint8_t)random_number) % popcount;
+    uint64_t index = (random_number) % popcount;
 
-    uint64_t ret = bitfield_only_nth_set(state, index);
+    uint64_t ret = bitfield_only_nth_set(state, (uint8_t)index);
 
     return ret;
 }
@@ -179,7 +177,7 @@ blk_check_error(wfc_blocks_ptr blocks, uint32_t gx, uint32_t gy)
     for (uint32_t y = 0; y < blocks->block_side; ++y) {
         for (uint32_t x = 0; x < blocks->block_side; ++x) {
             const uint64_t state   = *blk_at(blocks, gx, gy, x, y);
-            const uint8_t popcount = bitfield_count(state);
+            const uint8_t popcount = (uint8_t)__builtin_popcountll(state);
 
             // Skip non final states
             if (popcount != 1)
@@ -206,7 +204,7 @@ grd_check_error_in_row(wfc_blocks_ptr blocks, uint32_t gy)
         for (uint32_t gx = 0; gx < blocks->grid_side; ++gx) {
             for (uint32_t x = 0; x < blocks->block_side; ++x) {
                 const uint64_t state   = *blk_at(blocks, gx, gy, x, y);
-                const uint8_t popcount = bitfield_count(state);
+                const uint8_t popcount = (uint8_t)__builtin_popcountll(state);
 
                 // Skip non final states
                 if (popcount != 1)
@@ -234,7 +232,7 @@ grd_check_error_in_column(wfc_blocks_ptr blocks, uint32_t gx)
         for (uint32_t gy = 0; gy < blocks->grid_side; ++gy) {
             for (uint32_t y = 0; y < blocks->block_side; ++y) {
                 const uint64_t state   = *blk_at(blocks, gx, gy, x, y);
-                const uint8_t popcount = bitfield_count(state);
+                const uint8_t popcount = (uint8_t)__builtin_popcountll(state);
 
                 // Skip non final states
                 if (popcount != 1) {
@@ -303,6 +301,25 @@ grd_propagate_column(wfc_blocks_ptr blocks, uint32_t gx, uint32_t gy,
             uint64_t mask   = *state & ~collapsed;
             if (mask)
                 *state = mask;
+        }
+    }
+}
+
+void
+grk_recompute(wfc_blocks_ptr blocks)
+{
+    for (uint32_t gy = 0; gy < blocks->grid_side; ++gy) {
+        for (uint32_t gx = 0; gx < blocks->grid_side; ++gx) {
+            for (uint32_t y = 0; y < blocks->block_side; ++y) {
+                for (uint32_t x = 0; x < blocks->block_side; ++x) {
+                    uint64_t state = *blk_at(blocks, gx, gy, x, y);
+                    if (__builtin_popcountll(state) == 1) {
+                        blk_propagate(blocks, gx, gy, state);
+                        grd_propagate_row(blocks, gx, gy, x, y, state);
+                        grd_propagate_column(blocks, gx, gy, x, y, state);
+                    }
+                }
+            }
         }
     }
 }

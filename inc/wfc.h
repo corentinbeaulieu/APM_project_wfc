@@ -87,6 +87,9 @@ bool grd_check_error_in_row(wfc_blocks_ptr blocks, uint32_t gy);
 bool blk_check_error(wfc_blocks_ptr blocks, uint32_t gy, uint32_t gx);
 bool grd_check_error(wfc_blocks_ptr blocks);
 
+// Recompute grid
+void grk_recompute(wfc_blocks_ptr blocks);
+
 // Solvers
 bool solve_cpu(wfc_blocks_ptr);
 bool solve_openmp(wfc_blocks_ptr);

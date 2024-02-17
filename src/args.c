@@ -242,6 +242,7 @@ wfc_parse_args(int argc, char **argv)
         case 'p': {
             if ((parallel = to_u32(optarg, &end)) <= 0) {
                 fputs("you must at least process one seed at a time...", stderr);
+                fprintf(stderr, "invalid p argument %lu\n", parallel);
                 exit(EXIT_FAILURE);
             } else if ('\0' != *end) {
                 fprintf(stderr, "invalid integer: %s\n", optarg);

@@ -27,7 +27,7 @@ file(GLOB_RECURSE WaveFunctionCollapse_INC CONFIGURE_DEPENDS "${CMAKE_CURRENT_SO
 add_executable(wfc ${WaveFunctionCollapse_SRC} ${WaveFunctionCollapse_INC})
 target_include_directories(wfc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/inc)
 target_link_libraries(wfc  PRIVATE -pthread -fopenmp -lm)
-target_compile_options(wfc PRIVATE -march=native -g -O2 -pthread -fopenmp -std=c17)
+target_compile_options(wfc PRIVATE -std=c17 -march=native -g -O3 -funroll-loops -pthread -fopenmp)
 target_compile_options(wfc PRIVATE
     -Wall -Wextra -pedantic -Werror
     -Wshadow
@@ -41,6 +41,7 @@ target_compile_options(wfc PRIVATE
 if(${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
     target_compile_options(wfc PRIVATE
         -Weverything
+        -Wno-c99-compat
         -Wno-vla
         -Wno-unsafe-buffer-usage
         -Wno-declaration-after-statement
