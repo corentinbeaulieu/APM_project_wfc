@@ -118,13 +118,12 @@ wfc_load(uint64_t seed, const char *path)
         }
 
         if (line[0] == 's') {
-            blkcnt          = block_side * block_side;
+            blkcnt          = 3 * block_side * block_side + 2;
             ret             = safe_malloc(blkcnt + wfc_control_states_count(1, block_side));
             ret->block_side = (uint8_t)block_side;
             ret->grid_side  = 1u;
         } else if (line[0] == 'g') {
-            blkcnt          = block_side * block_side;
-            blkcnt          = blkcnt * blkcnt;
+            blkcnt          = 3 * block_side * block_side + 2;
             ret             = safe_malloc(blkcnt + wfc_control_states_count(block_side, block_side));
             ret->block_side = (uint8_t)block_side;
             ret->grid_side  = (uint8_t)block_side;
@@ -138,14 +137,13 @@ wfc_load(uint64_t seed, const char *path)
     }
 
     {
-        uint64_t mask       = 0;
-        const uint64_t base = wfc_control_states_count(ret->grid_side, ret->block_side);
-        for (uint8_t i = 0; i < ret->block_side * ret->block_side; i += 1) {
-            mask = bitfield_set(mask, i);
-        }
-        ret->states[0] = seed;
-        for (uint64_t i = 0; i < blkcnt + base; i += 1) {
-            ret->states[i] = mask;
+        const uint64_t range = (1lu << (ret->block_side * ret->block_side)) - 1lu;
+        const uint64_t base  = wfc_control_states_count(ret->grid_side, ret->block_side);
+        ret->states[0]       = seed;
+        ret->states[1]       = range;
+
+        for (uint64_t i = 2; i < blkcnt + base; i += 1) {
+            ret->states[i] = 0;
         }
     }
 
@@ -168,12 +166,10 @@ wfc_load(uint64_t seed, const char *path)
             exit(EXIT_FAILURE);
         }
 
-        const uint64_t collapsed   = to_binary_state(str_state);
+        const uint64_t collapsed = to_binary_state(str_state);
+        propagate(ret, gx, gy, x, y, collapsed);
         *blk_at(ret, gx, gy, x, y) = collapsed;
-        blk_propagate(ret, gx, gy, collapsed);
-        grd_propagate_column(ret, gx, gy, x, y, collapsed);
-        grd_propagate_row(ret, gx, gy, x, y, collapsed);
-        if (grd_check_error_in_column(ret, gx)) {
+        if (grd_check_error(ret)) {
             fprintf(stderr, "wrong propagation in block (%u, %u) from (%u, %u)\n", gx, gy, x, y);
             exit(EXIT_FAILURE);
         }

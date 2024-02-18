@@ -38,11 +38,41 @@ wfc_control_states_count(uint64_t grid_size, uint64_t block_size)
     return grid_size * grid_size * block_size * block_size;
 }
 
+// Access to the final states mask of the given line
+static inline uint64_t *
+states_line(wfc_blocks_ptr blocks, uint64_t line)
+{
+    // Skip two cells for the seed and the range.
+    return blocks->states + 2 + line;
+}
+
+// Access to the final states mask of the given column
+static inline uint64_t *
+states_col(wfc_blocks_ptr blocks, uint64_t column)
+{
+    // Skip enough for one line
+    const uint64_t skip = blocks->block_side * blocks->grid_side;
+    return states_line(blocks, 0) + skip + column;
+}
+
+// Access to the final states mask of the given block
+static inline uint64_t *
+states_block(wfc_blocks_ptr blocks, uint64_t block)
+{
+    // Skip enough for one block
+    const uint64_t skip = blocks->block_side * blocks->grid_side;
+    return states_col(blocks, 0) + skip + block;
+}
+
+// All the possible states of a given cell
+uint64_t
+possible_states(wfc_blocks_ptr blocks, uint32_t gx, uint32_t gy, uint32_t x, uint32_t y);
+
 static inline uint64_t *
 grd_at(wfc_blocks_ptr blocks, uint32_t gx, uint32_t gy)
 {
-    const uint64_t bs     = blocks->block_side * blocks->block_side;
-    const uint64_t blkcnt = bs;
+    const uint64_t bs   = blocks->block_side * blocks->block_side;
+    const uint64_t skip = blocks->block_side * blocks->block_side;
 
     /*
      * gs is the number of states in one block
@@ -50,7 +80,7 @@ grd_at(wfc_blocks_ptr blocks, uint32_t gx, uint32_t gy)
      * Skipping gx lines: gx * blocks->grid_side * bs
      * Skipping gy columns: gy * bs
      */
-    return blocks->states + blkcnt + blocks->grid_side * bs * gx + gy * bs;
+    return states_block(blocks, 0) + skip + blocks->grid_side * bs * gx + gy * bs;
 }
 
 static inline uint64_t *
@@ -71,24 +101,15 @@ void blk_print(FILE *const, const wfc_blocks_ptr block, uint32_t gx, uint32_t gy
 void grd_print(FILE *const, const wfc_blocks_ptr block);
 
 // Entropy functions
-entropy_location blk_min_entropy(const wfc_blocks_ptr block, uint32_t gx, uint32_t gy);
 entropy_location grd_min_entropy(const wfc_blocks_ptr blocks);
 uint8_t entropy_compute(uint64_t);
 uint64_t entropy_collapse_state(uint64_t, uint32_t, uint32_t, uint32_t, uint32_t, uint64_t, uint64_t);
 
 // Propagation functions
-void blk_propagate(wfc_blocks_ptr, uint32_t, uint32_t, uint64_t);
-void grd_propagate_column(wfc_blocks_ptr, uint32_t, uint32_t, uint32_t, uint32_t, uint64_t);
-void grd_propagate_row(wfc_blocks_ptr, uint32_t, uint32_t, uint32_t, uint32_t, uint64_t);
+void propagate(wfc_blocks_ptr blocks, uint32_t gx, uint32_t gy, uint32_t x, uint32_t y, uint64_t state);
 
 // Check functions
-bool grd_check_error_in_column(wfc_blocks_ptr, uint32_t);
-bool grd_check_error_in_row(wfc_blocks_ptr blocks, uint32_t gy);
-bool blk_check_error(wfc_blocks_ptr blocks, uint32_t gy, uint32_t gx);
 bool grd_check_error(wfc_blocks_ptr blocks);
-
-// Recompute grid
-void grk_recompute(wfc_blocks_ptr blocks);
 
 // Solvers
 bool solve_cpu(wfc_blocks_ptr);

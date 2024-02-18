@@ -15,20 +15,13 @@ typedef struct {
 typedef struct {
     vec2 location;
     vec2 grid_location;
+    uint64_t choice;
     uint8_t entropy;
-
-    uint8_t _1;
-    uint16_t _2;
 } entropy_location;
 
 typedef struct {
     uint8_t block_side;
     uint8_t grid_side;
-
-    uint8_t _1;
-    uint8_t _2;
-    uint32_t _3;
-
     uint64_t states[];
 } wfc_blocks;
 
