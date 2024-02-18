@@ -26,7 +26,7 @@ wfc_blocks_ptr wfc_load(uint64_t, const char *);
 void wfc_clone_into(wfc_blocks_ptr *const restrict, uint64_t, const wfc_blocks_ptr);
 
 /// Save the grid to a folder by creating a new file or overwrite it, on error kills the program.
-void wfc_save_into(const wfc_blocks_ptr, const char data[], const char folder[]);
+void wfc_save_into(const wfc_blocks_ptr, const char data[], const char folder[], const bool box_drawing);
 
 static inline uint64_t
 wfc_control_states_count(uint64_t grid_size, uint64_t block_size)

@@ -185,7 +185,7 @@ wfc_load(uint64_t seed, const char *path)
 }
 
 void
-wfc_save_into(const wfc_blocks_ptr blocks, const char data[], const char folder[])
+wfc_save_into(const wfc_blocks_ptr blocks, const char data[], const char folder[], const bool box_drawing)
 {
     const size_t data_len = strlen(data);
     FILE *restrict f      = stdout;
@@ -237,20 +237,71 @@ wfc_save_into(const wfc_blocks_ptr blocks, const char data[], const char folder[
 
     const uint64_t ends = blocks->grid_side * blocks->grid_side * blocks->block_side *
                           blocks->block_side;
-    for (uint32_t gx = 0; gx < blocks->grid_side; gx++) {
+    if (box_drawing == true) {
         for (uint32_t gy = 0; gy < blocks->grid_side; gy++) {
-            for (uint32_t x = 0; x < blocks->block_side; x++) {
-                for (uint32_t y = 0; y < blocks->block_side; y++) {
-                    const uint64_t state      = *blk_at(blocks, gx, gy, x, y);
-                    const uint64_t real_value = bitfield_to_integer(state);
-
-                    if (fprintf(f, "%2lu ", real_value) < 0) {
-                        fprintf(stderr, "failed to write: %s\n", strerror(errno));
-                        exit(EXIT_FAILURE);
-                    }
+            if (gy == 0)
+                fputs(u8"\t┏", f);
+            else
+                fputs(u8"\t┣", f);
+            for (int i = 0; i < blocks->grid_side; i++) {
+                for (int j = 0; j < (blocks->block_side - 1); j++) {
+                    fputs(u8"━━━", f);
+                }
+                if (i < blocks->grid_side - 1) {
+                    if (gy == 0)
+                        fputs(u8"━━┳", f);
+                    else
+                        fputs(u8"━━╋", f);
+                } else {
+                    if (gy == 0)
+                        fputs(u8"━━┓\n", f);
+                    else
+                        fputs(u8"━━┫\n", f);
                 }
             }
-            fprintf(f, "\n");
+            for (uint32_t y = 0; y < blocks->block_side; y++) {
+                fputs(u8"\t┃", f);
+                for (uint32_t gx = 0; gx < blocks->grid_side; gx++) {
+                    for (uint32_t x = 0; x < blocks->block_side; x++) {
+                        const uint64_t state      = *blk_at(blocks, gx, gy, x, y);
+                        const uint64_t real_value = bitfield_to_integer(state);
+
+                        if (fprintf(f, "%2lu ", real_value) < 0) {
+                            fprintf(stderr, "failed to write: %s\n", strerror(errno));
+                            exit(EXIT_FAILURE);
+                        }
+                    }
+                    fputs(u8"\b┃", f);
+                }
+                fputs("\n", f);
+            }
+        }
+        fputs(u8"\t┗", f);
+        for (int i = 0; i < blocks->grid_side; i++) {
+            for (int j = 0; j < blocks->block_side - 1; j++) {
+                fputs(u8"━━━", f);
+            }
+            if (i < blocks->grid_side - 1)
+                fputs(u8"━━┻", f);
+            else
+                fputs(u8"━━┛\n", f);
+        }
+    } else {
+        for (uint32_t gx = 0; gx < blocks->grid_side; gx++) {
+            for (uint32_t gy = 0; gy < blocks->grid_side; gy++) {
+                for (uint32_t x = 0; x < blocks->block_side; x++) {
+                    for (uint32_t y = 0; y < blocks->block_side; y++) {
+                        const uint64_t state      = *blk_at(blocks, gx, gy, x, y);
+                        const uint64_t real_value = bitfield_to_integer(state);
+
+                        if (fprintf(f, "%2lu ", real_value) < 0) {
+                            fprintf(stderr, "failed to write: %s\n", strerror(errno));
+                            exit(EXIT_FAILURE);
+                        }
+                    }
+                }
+                fputs("\n", f);
+            }
         }
     }
 

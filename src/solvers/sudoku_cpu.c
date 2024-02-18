@@ -31,7 +31,7 @@ solve_cpu(wfc_blocks_ptr blocks)
 
         // 3. Check Error
         if (grd_check_error(blocks)) {
-            fprintf(stderr, " Error at iteration %lu\n", iteration);
+            //fprintf(stderr, " Error at iteration %lu\n", iteration);
             return false;
         }
 

@@ -49,6 +49,7 @@ main(int argc, char *argv[])
 
     _Atomic unsigned char quit  = false;
     _Atomic uint64_t iterations = 0;
+    _Atomic int solving_thread  = 0;
     wfc_blocks_ptr blocks       = NULL;
     wfc_blocks_ptr final_result = NULL;
 
@@ -56,38 +57,44 @@ main(int argc, char *argv[])
     const uint64_t max_iterations = count_seeds(args.seeds);
     const double start            = omp_get_wtime();
 
-#pragma omp parallel for num_threads(num_threads) firstprivate(blocks) shared(quit, iterations, init, final_result)
-    for (size_t iter = 1; iter <= max_iterations; iter++) {
-        if (atomic_load(&quit) == true) {
-            if (blocks) {
-                free(blocks);
-                blocks = NULL;
+#pragma omp parallel num_threads(num_threads) firstprivate(blocks) shared(quit, iterations, init, final_result, solving_thread)
+    {
+#pragma omp for nowait
+        for (size_t iter = 1; iter <= max_iterations; iter++) {
+            if (atomic_load(&quit) == true) {
+                continue;
             }
-            continue;
-        }
 
-        bool has_next_seed = false;
-        uint64_t next_seed = 0;
+            bool has_next_seed = false;
+            uint64_t next_seed = 0;
 
 #pragma omp critical
-        {
-            has_next_seed = try_next_seed(&args.seeds, &next_seed);
+            {
+                has_next_seed = try_next_seed(&args.seeds, &next_seed);
+            }
+
+            if (has_next_seed == false) {
+                continue;
+            }
+
+            wfc_clone_into(&blocks, next_seed, init);
+            const bool solved = args.solver(blocks);
+            atomic_fetch_add(&iterations, 1);
+
+            if (solved == true && atomic_fetch_or(&quit, solved) == false) {
+                atomic_store(&solving_thread, omp_get_thread_num());
+                wfc_clone_into(&final_result, blocks->states[0], blocks);
+            } else {
+                print_progress(atomic_load(&iterations), max_iterations);
+            }
         }
-
-        if (has_next_seed == false) {
-            continue;
-        }
-
-        wfc_clone_into(&blocks, next_seed, init);
-        const bool solved = args.solver(blocks);
-        atomic_fetch_add(&iterations, 1);
-
-        if (solved == true && atomic_fetch_or(&quit, solved) == false) {
-            wfc_clone_into(&final_result, blocks->states[0], blocks);
-        } else {
-            print_progress(atomic_load(&iterations), max_iterations);
+        if (blocks) {
+            free(blocks);
+            blocks = NULL;
         }
     }
+
+    const double stop = omp_get_wtime();
 
     fflush(stdout);
     if (final_result) {
@@ -96,18 +103,20 @@ main(int argc, char *argv[])
         else
             fputs("\n\nsuccess with result:\n", stdout);
 
-        printf("thread %d:\nseed: %lu\n", omp_get_thread_num(), final_result->states[0]);
+        printf("thread %d:\nseed: %lu\n", atomic_load(&solving_thread), final_result->states[0]);
 
-        wfc_save_into(final_result, args.data_file, args.output_folder);
+        wfc_save_into(final_result, args.data_file, args.output_folder, args.box_drawing);
+
+        free(final_result);
     } else {
         fprintf(stderr, "\n\n\x1b[1mNo solution found\x1b[0m\n");
     }
-
-    const double stop = omp_get_wtime();
 
     fprintf(stdout, "%9lu / %9lu = %6.2f%% ➜ %.16f s\n",
             atomic_load(&iterations), max_iterations,
             ((double)(atomic_load(&iterations)) / (double)(max_iterations)) * 100.0,
             stop - start);
+
+    free(init);
     return 0;
 }
