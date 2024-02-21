@@ -9,145 +9,10 @@
 #include <sys/stat.h>
 #include <stdio.h>
 
-typedef struct {
-    enum {
-        seed_item_single = 1,
-        seed_item_tuple  = 2,
-    } type;
-
-    union {
-        /// Only when `.type == seed_item_single`
-        uint32_t single;
-
-        /// Only when `.type == seed_item_tuple`
-        struct {
-            uint32_t from;
-            uint32_t to;
-        };
-    } content;
-} seed_item;
-
-typedef struct seeds_list {
-    uint64_t count;
-    uint64_t size;
-    seed_item items[];
-} seeds_list;
-
 uint64_t
-count_seeds(const seeds_list *restrict const seeds)
+count_seeds(const seeds_info *restrict const seeds)
 {
-    uint64_t total = 0;
-    for (uint64_t i = 0; i < seeds->count; i += 1) {
-        switch (seeds->items[i].type) {
-        case seed_item_single: total += 1; break;
-        case seed_item_tuple: {
-            total += (seeds->items[i].content.to - seeds->items[i].content.from + 1);
-            break;
-        }
-        }
-    }
-    return total;
-}
-
-static inline seeds_list *
-seeds_list_push_item(seeds_list *restrict list, seed_item item)
-{
-    // First call, need to allocate the thing.
-    if (NULL == list) {
-        static const uint64_t DEFAULT_SIZE = 10;
-        list                               = malloc(sizeof(seeds_list) + DEFAULT_SIZE * sizeof(seed_item));
-        if (NULL == list) {
-            fprintf(stderr, "failed to allocate seeds list\n");
-            exit(EXIT_FAILURE);
-        }
-        list->size     = DEFAULT_SIZE;
-        list->count    = 1;
-        list->items[0] = item;
-    }
-
-    // Already exists, but need to reallocate
-    else if (list->size <= list->count) {
-        static const uint64_t GROWTH_FACTOR = 2;
-        const uint64_t new_list_size        = list->size * GROWTH_FACTOR;
-        list                                = realloc(list, sizeof(seeds_list) + new_list_size * sizeof(seed_item));
-        if (NULL == list) {
-            fprintf(stderr, "failed to realloc the seeds list\n");
-            exit(EXIT_FAILURE);
-        }
-        list->size               = new_list_size;
-        list->items[list->count] = item;
-        list->count += 1;
-    }
-
-    // Already exists, don't need to reallocate
-    else {
-        list->items[list->count] = item;
-        list->count += 1;
-    }
-
-    return list;
-}
-
-static inline void
-list_pop(seeds_list *restrict *const list_ptr)
-{
-    seeds_list *restrict list = *list_ptr;
-    if (NULL == list) {
-        return;
-    } else if (list->count >= 2) {
-        memmove(&list->items[0], &list->items[1], (list->count - 1) * sizeof(seed_item));
-        list->count -= 1;
-    } else {
-        free(list);
-        *list_ptr = NULL;
-    }
-}
-
-static inline uint64_t
-seeds_list_pop(seeds_list *restrict *const list_ptr)
-{
-    if (NULL == list_ptr) {
-        return UINT64_MAX;
-    }
-    seeds_list *restrict list = *list_ptr;
-
-    // Nothing to see
-    if (NULL == list) {
-        return UINT64_MAX;
-    } else if (0 == list->count) {
-        free(list);
-        *list_ptr = NULL;
-        return UINT64_MAX;
-    }
-
-    // Handle tuples
-    else if (list->items[0].type == seed_item_tuple) {
-        const uint64_t ret = list->items[0].content.from;
-        list->items[0].content.from += 1;
-        if (list->items[0].content.from >= list->items[0].content.to) {
-            list_pop(list_ptr);
-        }
-        return ret;
-    }
-
-    // Handle single items
-    else if (list->items[0].type == seed_item_single) {
-        const uint64_t ret = list->items[0].content.single;
-        list_pop(list_ptr);
-        return ret;
-    }
-
-    // Oupsy doupsy
-    else {
-        abort();
-    }
-}
-
-bool
-try_next_seed(seeds_list *restrict *const seeds, uint64_t *restrict return_seed)
-{
-    *return_seed = seeds_list_pop(seeds);
-    return UINT64_MAX != *return_seed;
+    return seeds->count;
 }
 
 _Noreturn static inline void
@@ -195,20 +60,19 @@ wfc_args
 wfc_parse_args(int argc, char **argv)
 {
     int opt;
-    seeds_list *restrict seeds     = NULL;
-    const char *output             = NULL;
-    bool box_drawing               = false;
-    uint64_t parallel              = 1;
-    bool (*solver)(wfc_blocks_ptr) = NULL;
-    char *end                      = NULL;
+    seeds_info seeds                                           = { .count = 100, .start = 0 };
+    const char *output                                         = NULL;
+    bool box_drawing                                           = false;
+    uint64_t parallel                                          = 1;
+    bool (*solver)(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *) = NULL;
+    char *end                                                  = NULL;
 
     while ((opt = getopt(argc, argv, "hbs:o:l:p:")) != -1) {
         switch (opt) {
         case 's': {
             const uint32_t from = to_u32(optarg, &end);
             if ('\0' == *end) {
-                seeds = seeds_list_push_item(seeds, (seed_item){ .type    = seed_item_single,
-                                                                 .content = { .single = from } });
+                seeds = (seeds_info){ .count = 1, .start = from };
             } else if ('-' == *end) {
                 const uint32_t to = to_u32(end + 1, &end);
                 if (*end != '\0') {
@@ -218,9 +82,7 @@ wfc_parse_args(int argc, char **argv)
                     fprintf(stderr, "invalid range: %u >= %u\n", from, to);
                     exit(EXIT_FAILURE);
                 }
-                seeds = seeds_list_push_item(
-                    seeds, (seed_item){ .type    = seed_item_tuple,
-                                        .content = { .from = from, .to = to } });
+                seeds.count = to - from + 1;
             } else {
                 fprintf(stderr, "invalid range delimiter: '%c'\n", *end);
                 exit(EXIT_FAILURE);
@@ -278,10 +140,6 @@ wfc_parse_args(int argc, char **argv)
     } else if (!str_ends_with(argv[optind], ".data")) {
         fprintf(stderr, "expected the suffix `.data` for the data file: %s\n", argv[optind]);
         exit(EXIT_FAILURE);
-    }
-
-    if (seeds == NULL) {
-        seeds = seeds_list_push_item(seeds, (seed_item){ .type = seed_item_single, .content.single = 0 });
     }
 
     return (wfc_args){

@@ -1,14 +1,12 @@
 #define _GNU_SOURCE
 
 #include "wfc.h"
+#include "utils.h"
 
 #include <omp.h>
 
-void
-grk_recompute(wfc_blocks_ptr blocks);
-
-bool
-solve_cpu(wfc_blocks_ptr blocks)
+static inline bool
+_solve(wfc_blocks_ptr blocks)
 {
     uint64_t iteration = 0;
 
@@ -38,4 +36,30 @@ solve_cpu(wfc_blocks_ptr blocks)
     }
 
     return true;
+}
+
+bool
+solve_cpu(wfc_blocks_ptr init, wfc_args args, wfc_blocks_ptr *res)
+{
+    bool solved                   = false;
+    const uint64_t max_iterations = args.seeds.count;
+
+    for (uint64_t i = 0; i < args.seeds.count; ++i) {
+        wfc_blocks_ptr tmp_blocks = NULL;
+        const uint64_t seed       = args.seeds.start + i;
+
+        wfc_clone_into(&tmp_blocks, seed, init);
+        solved = _solve(tmp_blocks);
+
+        if (solved) {
+            wfc_clone_into(res, seed, tmp_blocks);
+            free(tmp_blocks);
+            return true;
+        }
+
+        free(tmp_blocks);
+        print_progress(i, max_iterations);
+    }
+
+    return false;
 }

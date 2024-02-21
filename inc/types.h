@@ -3,10 +3,10 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
-/// Opaque type to store the seeds to try for the solving process. You may push to it and pop from
-/// it. You may not try to index it manually or free this structure, it will be automatically freed
-/// when no more items are present inside it.
-typedef struct seeds_list seeds_list;
+typedef struct seeds_info {
+    uint64_t count;
+    uint64_t start;
+} seeds_info;
 
 typedef struct {
     uint32_t x, y;
@@ -27,16 +27,16 @@ typedef struct {
 
 typedef wfc_blocks *wfc_blocks_ptr;
 
-typedef struct {
+typedef struct wfc_args {
     const char *const data_file;
     const char *const output_folder;
-    seeds_list *restrict seeds;
+    seeds_info seeds;
     const uint64_t parallel;
-    bool (*const solver)(wfc_blocks_ptr);
+    bool (*const solver)(wfc_blocks_ptr, struct wfc_args, wfc_blocks_ptr *);
     const bool box_drawing;
 } wfc_args;
 
 typedef struct {
     const char *const name;
-    bool (*function)(wfc_blocks_ptr);
+    bool (*function)(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *);
 } wfc_solver;

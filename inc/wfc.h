@@ -12,12 +12,6 @@
 /// Parses the arguments, prints the help message if needed and abort on error.
 wfc_args wfc_parse_args(int argc, char **argv);
 
-/// Get the next seed to try. If there are no more seeds to try, it will exit the process.
-bool try_next_seed(seeds_list *restrict *const, uint64_t *restrict);
-
-/// Count the total number of seeds.
-uint64_t count_seeds(const seeds_list *restrict const);
-
 /// Load the positions from a file. You must free the thing yourself. On error
 /// kill the program.
 wfc_blocks_ptr wfc_load(uint64_t, const char *);
@@ -112,9 +106,9 @@ void propagate(wfc_blocks_ptr blocks, uint32_t gx, uint32_t gy, uint32_t x, uint
 bool grd_check_error(wfc_blocks_ptr blocks);
 
 // Solvers
-bool solve_cpu(wfc_blocks_ptr);
-bool solve_openmp(wfc_blocks_ptr);
-bool solve_target(wfc_blocks_ptr);
+bool solve_cpu(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *);
+bool solve_openmp(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *);
+bool solve_target(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *);
 #if defined(WFC_CUDA)
 bool solve_cuda(wfc_blocks_ptr);
 #endif
