@@ -33,6 +33,7 @@ typedef struct {
     seeds_list *restrict seeds;
     const uint64_t parallel;
     bool (*const solver)(wfc_blocks_ptr);
+    const bool box_drawing;
 } wfc_args;
 
 typedef struct {

@@ -153,9 +153,10 @@ try_next_seed(seeds_list *restrict *const seeds, uint64_t *restrict return_seed)
 _Noreturn static inline void
 print_help(const char *exec)
 {
-    fprintf(stdout, "usage: %s [-h] [-o folder/] [-l solver] [-p count] [-s seeds...] <path/to/file.data>\n", exec);
+    fprintf(stdout, "usage: %s [-hb] [-o folder/] [-l solver] [-p count] [-s seeds...] <path/to/file.data>\n", exec);
     puts("  -h          print this help message.");
-    puts("  -o          output folder to save solutions. adds the seed to the data file name.");
+    puts("  -o folder   output folder to save solutions. adds the seed to the data file name.");
+    puts("  -b          draw a box using utf8 box drawing caracter on output (default: off).");
     puts("  -p count    number of seeds that can be processed in parallel");
     puts("  -s seeds    seeds to use. can an integer or a range: `from-to`.");
 
@@ -196,11 +197,12 @@ wfc_parse_args(int argc, char **argv)
     int opt;
     seeds_list *restrict seeds     = NULL;
     const char *output             = NULL;
+    bool box_drawing               = false;
     uint64_t parallel              = 1;
     bool (*solver)(wfc_blocks_ptr) = NULL;
     char *end                      = NULL;
 
-    while ((opt = getopt(argc, argv, "hs:o:l:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "hbs:o:l:p:")) != -1) {
         switch (opt) {
         case 's': {
             const uint32_t from = to_u32(optarg, &end);
@@ -262,6 +264,10 @@ wfc_parse_args(int argc, char **argv)
             }
         }
 
+        case 'b': {
+            box_drawing = true;
+            break;
+        }
         case 'h':
         default: print_help(argv[0]);
         }
@@ -284,5 +290,6 @@ wfc_parse_args(int argc, char **argv)
         .output_folder = output,
         .parallel      = parallel,
         .solver        = (NULL == solver) ? solvers[0].function : solver,
+        .box_drawing   = box_drawing,
     };
 }
