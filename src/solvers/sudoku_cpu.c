@@ -6,7 +6,7 @@
 #include <omp.h>
 
 static inline bool
-_solve(wfc_blocks_ptr blocks)
+solve(wfc_blocks_ptr blocks)
 {
     uint64_t iteration = 0;
 
@@ -25,8 +25,10 @@ _solve(wfc_blocks_ptr blocks)
             break;
 
         // Check for error
-        if (!choice)
-            return fprintf(stderr, " Error at iteration %lu\n", iteration), false;
+        if (!choice) {
+            fprintf(stderr, " Error at iteration %lu\n", iteration);
+            return false;
+        }
 
         // Update internal states
         uint64_t new_state            = entropy_collapse_state(choice, gx, gy, x, y, seed, iteration);
@@ -49,7 +51,7 @@ solve_cpu(wfc_blocks_ptr init, wfc_args args, wfc_blocks_ptr *res)
         const uint64_t seed       = args.seeds.start + i;
 
         wfc_clone_into(&tmp_blocks, seed, init);
-        solved = _solve(tmp_blocks);
+        solved = solve(tmp_blocks);
 
         if (solved) {
             wfc_clone_into(res, seed, tmp_blocks);

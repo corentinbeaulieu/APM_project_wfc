@@ -9,12 +9,6 @@
 #include <sys/stat.h>
 #include <stdio.h>
 
-uint64_t
-count_seeds(const seeds_info *restrict const seeds)
-{
-    return seeds->count;
-}
-
 _Noreturn static inline void
 print_help(const char *exec)
 {

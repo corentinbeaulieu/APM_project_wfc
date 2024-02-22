@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.17)
 project(WaveFunctionCollapse VERSION 0.1 LANGUAGES C)
 cmake_policy(SET CMP0009 NEW) # Do not follow symlinks with GLOB_RECURSE
 
+set(CMAKE_C_COMPILER "clang")
+set(CMAKE_CXX_COMPILER "clang++")
+
 STRING(COMPARE EQUAL "${CMAKE_SOURCE_DIR}" "${CMAKE_BINARY_DIR}" insource)
 GET_FILENAME_COMPONENT(PARENTDIR ${CMAKE_SOURCE_DIR} PATH)
 STRING(COMPARE EQUAL "${CMAKE_SOURCE_DIR}" "${PARENTDIR}" insourcesubdir)
@@ -38,15 +41,18 @@ target_compile_options(wfc PRIVATE
     -Wformat=2
 )
 
-if(${CMAKE_C_COMPILER_ID} STREQUAL "Clang")
+if(${CMAKE_C_COMPILER} STREQUAL "clang")
     target_compile_options(wfc PRIVATE
         -Weverything
         -Wno-c99-compat
         -Wno-vla
-        -Wno-unsafe-buffer-usage
+        -Wno-disabled-macro-expansion
+        -Wno-padded
+        -fopenmp-targets=nvptx64-nvidia-cuda -Xopenmp-target -march=sm_60
+        # -Wno-unsafe-buffer-usage
         -Wno-declaration-after-statement
     )
-elseif(${CMAKE_C_COMPILER_ID} STREQUAL "GNU")
+elseif(${CMAKE_C_COMPILER} STREQUAL "GNU")
     target_compile_options(wfc PRIVATE
         -Wno-switch
         -Wno-unsafe-buffer-usage
