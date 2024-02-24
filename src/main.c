@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 
 #include "wfc.h"
+#include "utils.h"
 
 #include <stdio.h>
 #include <omp.h>
@@ -44,8 +45,8 @@ main(int argc, char *argv[])
             ((double)(atomic_load(&iterations)) / (double)(max_iterations)) * 100.0,
             stop - start);
 
-    free(init);
+    safe_free(init);
     if (res)
-        free(res);
+        safe_free(res);
     return 0;
 }

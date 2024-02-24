@@ -69,7 +69,7 @@ solve_openmp(wfc_blocks_ptr init, wfc_args args, wfc_blocks_ptr *res)
                     }
                     wfc_clone_into(res, seed, tmp_blocks);
                 }
-                free(tmp_blocks);
+                safe_free(tmp_blocks);
             }
 
 #pragma omp critical

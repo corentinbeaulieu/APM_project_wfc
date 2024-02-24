@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 
 #include "wfc.h"
+#include "utils.h"
 #include "bitfield.h"
 
 #include <ctype.h>
@@ -45,19 +46,6 @@ next(char *restrict str, char sep)
     ret[0] = '\0';
     ret += 1;
     return ret;
-}
-
-static inline wfc_blocks *
-safe_malloc(uint64_t blkcnt)
-{
-    uint64_t size   = sizeof(wfc_blocks) + sizeof(uint64_t) * blkcnt;
-    wfc_blocks *ret = (wfc_blocks *)malloc(size);
-    if (ret != NULL) {
-        return ret;
-    } else {
-        fprintf(stderr, "failed to malloc %zu bytes\n", size);
-        exit(EXIT_FAILURE);
-    }
 }
 
 static inline uint32_t

@@ -64,25 +64,15 @@ entropy_compute(uint64_t state)
 void
 wfc_clone_into(wfc_blocks_ptr *const restrict ret_ptr, uint64_t seed, const wfc_blocks_ptr blocks)
 {
-    const uint64_t grid_size  = blocks->grid_side;
-    const uint64_t block_size = blocks->block_side;
-    wfc_blocks_ptr ret        = *ret_ptr;
+    const uint8_t grid_size  = blocks->grid_side;
+    const uint8_t block_size = blocks->block_side;
+    const uint64_t blkcnt    = 3 * block_size * block_size + 2 + wfc_control_states_count(grid_size, block_size);
 
-    const uint64_t size = (wfc_control_states_count(grid_size, block_size) * sizeof(uint64_t)) +
-                          ((2 + 3 * block_size * block_size) * sizeof(uint64_t)) +
-                          sizeof(wfc_blocks);
+    wfc_blocks_ptr ret = safe_malloc(blkcnt);
+    ret->grid_side     = grid_size;
+    ret->block_side    = block_size;
 
-    if (NULL == ret) {
-        if (NULL == (ret = malloc(size))) {
-            fprintf(stderr, "failed to clone blocks structure\n");
-            exit(EXIT_FAILURE);
-        }
-    } else if (grid_size != ret->grid_side || block_size != ret->block_side) {
-        fprintf(stderr, "size mismatch!\n");
-        exit(EXIT_FAILURE);
-    }
-
-    memcpy(ret, blocks, size);
+    memcpy(ret->states, blocks->states, blkcnt * sizeof(uint64_t));
     ret->states[0] = seed;
     *ret_ptr       = ret;
 }

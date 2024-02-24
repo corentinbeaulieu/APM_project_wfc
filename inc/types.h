@@ -22,7 +22,7 @@ typedef struct {
 typedef struct {
     uint8_t block_side;
     uint8_t grid_side;
-    uint64_t states[];
+    uint64_t *states;
 } wfc_blocks;
 
 typedef wfc_blocks *wfc_blocks_ptr;
