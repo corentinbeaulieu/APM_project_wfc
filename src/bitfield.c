@@ -18,7 +18,7 @@ find_nth_set_bit(uint64_t mask, uint64_t n)
     const uint64_t c16 = ((c8 >> 8) + c8) & m8;
     const uint64_t c32 = (c16 >> 16) + c16;
     const uint64_t c64 = (uint64_t)(((c32 >> 32) + c32) & 0x7f);
-    t                  = (c32)&0x3f;
+    t                  = (c32) & 0x3f;
     if (i >= t) {
         r += 32;
         i -= t;
@@ -48,7 +48,7 @@ find_nth_set_bit(uint64_t mask, uint64_t n)
         r += 1;
     }
     if (n >= c64) {
-        abort();
+        r = 0;
     }
     return r;
 }
@@ -61,6 +61,16 @@ bitfield_only_nth_set(uint64_t x, uint8_t n)
 {
     return 1llu << find_nth_set_bit(x, n);
 }
+
+#pragma omp declare target
+/** Target variant of the previous function
+ */
+uint64_t
+bitfield_only_nth_set_target(uint64_t x, uint8_t n)
+{
+    return 1llu << find_nth_set_bit(x, n);
+}
+#pragma omp end declare target
 
 /** Given a bitfield, this function returns the index of the
  *  least significiant bit to one starting from 1.
@@ -77,7 +87,6 @@ bitfield_to_integer(const uint64_t bitfield)
     while (quit != true) {
         ret++;
         quit |= bitfield & mask;
-        // Oupsy Doopsy
         mask <<= 1;
     }
 

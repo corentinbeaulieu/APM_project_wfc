@@ -2,6 +2,7 @@
 #include <wchar.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <omp.h>
 
 #define linewidth (80)
 
@@ -33,6 +34,38 @@ print_progress(const size_t iter, const size_t max_iter)
     fprintf(stdout, "\r%9lu / %9lu       \x1b[32m%s\x1b[0m%s % 7.2f %%", iter, max_iter, green_bar_buffer, white_bar_buffer, completed * 100);
     fflush(stdout);
 }
+
+#pragma omp declare target
+void
+print_progress_target(const size_t iter, const size_t max_iter)
+{
+    const double completed = (double)iter / ((double)max_iter);
+
+    char green_bar_buffer[(linewidth / 2) * 3 + 1] = { 0 };
+    char white_bar_buffer[(linewidth / 2) * 3 + 1] = { 0 };
+#pragma omp allocate(green_bar_buffer, white_bar_buffer) allocator(omp_thread_mem_alloc)
+
+    const char bar[4]      = u8"─";
+    const char bar_bold[4] = u8"━";
+#pragma omp allocate(bar, bar_bold) allocator(omp_thread_mem_alloc)
+
+    const size_t nb_completed = (size_t)(completed * 40);
+
+    for (size_t i = 0; i < nb_completed * 3; i += 3) {
+        green_bar_buffer[i]     = bar_bold[0];
+        green_bar_buffer[i + 1] = bar_bold[1];
+        green_bar_buffer[i + 2] = bar_bold[2];
+    }
+
+    for (size_t i = 0; i < (linewidth / 2 - nb_completed) * 3; i += 3) {
+        white_bar_buffer[i]     = bar[0];
+        white_bar_buffer[i + 1] = bar[1];
+        white_bar_buffer[i + 2] = bar[2];
+    }
+
+    printf("\r%9lu / %9lu       \x1b[32m%s\x1b[0m%s % 7.2f %%", iter, max_iter, green_bar_buffer, white_bar_buffer, completed * 100);
+}
+#pragma omp end declare target
 
 void
 safe_free(wfc_blocks_ptr blk)

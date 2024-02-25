@@ -36,6 +36,7 @@ bitfield_count(uint64_t x)
 
 /// Get the integer with only the nth setted bit of the said integer.
 uint64_t bitfield_only_nth_set(uint64_t, uint8_t);
+uint64_t bitfield_only_nth_set_target(uint64_t, uint8_t);
 
 /// Prints the bitfield to the file descriptor.
 void bitfield_print(FILE *const, uint64_t);

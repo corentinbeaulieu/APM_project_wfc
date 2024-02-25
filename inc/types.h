@@ -20,9 +20,9 @@ typedef struct {
 } entropy_location;
 
 typedef struct {
+    uint64_t *states;
     uint8_t block_side;
     uint8_t grid_side;
-    uint64_t *states;
 } wfc_blocks;
 
 typedef wfc_blocks *wfc_blocks_ptr;
@@ -32,11 +32,12 @@ typedef struct wfc_args {
     const char *const output_folder;
     seeds_info seeds;
     const uint64_t parallel;
-    bool (*const solver)(wfc_blocks_ptr, struct wfc_args, wfc_blocks_ptr *);
+    const uint64_t teams;
+    bool (*const solver)(wfc_blocks_ptr, struct wfc_args, wfc_blocks_ptr *, uint64_t *);
     const bool box_drawing;
 } wfc_args;
 
 typedef struct {
     const char *const name;
-    bool (*function)(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *);
+    bool (*function)(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *, uint64_t *);
 } wfc_solver;

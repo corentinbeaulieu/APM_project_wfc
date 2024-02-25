@@ -61,6 +61,8 @@ states_block(wfc_blocks_ptr blocks, uint64_t block)
 // All the possible states of a given cell
 uint64_t
 possible_states(wfc_blocks_ptr blocks, uint32_t gx, uint32_t gy, uint32_t x, uint32_t y);
+uint64_t
+possible_states_target(wfc_blocks_ptr blocks, uint32_t gx, uint32_t gy, uint32_t x, uint32_t y);
 
 static inline uint64_t *
 grd_at(wfc_blocks_ptr blocks, uint32_t gx, uint32_t gy)
@@ -96,21 +98,25 @@ void grd_print(FILE *const, const wfc_blocks_ptr block);
 
 // Entropy functions
 entropy_location grd_min_entropy(const wfc_blocks_ptr blocks);
+entropy_location grd_min_entropy_target(const wfc_blocks_ptr blocks);
 uint8_t entropy_compute(uint64_t);
 uint64_t entropy_collapse_state(uint64_t, uint32_t, uint32_t, uint32_t, uint32_t, uint64_t, uint64_t);
+uint64_t entropy_collapse_state_target(uint64_t, uint32_t, uint32_t, uint32_t, uint32_t, uint64_t, uint64_t);
 
 // Propagation functions
 void propagate(wfc_blocks_ptr blocks, uint32_t gx, uint32_t gy, uint32_t x, uint32_t y, uint64_t state);
+void propagate_target(wfc_blocks_ptr blocks, uint32_t gx, uint32_t gy, uint32_t x, uint32_t y, uint64_t state);
 
 // Check functions
 bool grd_check_error(wfc_blocks_ptr blocks);
+bool grd_check_error_target(wfc_blocks_ptr blocks);
 
 // Solvers
-bool solve_cpu(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *);
-bool solve_openmp(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *);
-bool solve_target(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *);
+bool solve_cpu(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *, uint64_t *);
+bool solve_openmp(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *, uint64_t *);
+bool solve_target(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *, uint64_t *);
 #if defined(WFC_CUDA)
-bool solve_cuda(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *);
+bool solve_cuda(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *, uint64_t *);
 #endif
 
 static const wfc_solver solvers[] = {

@@ -93,7 +93,7 @@ find_nth_set_bit(uint64_t mask, uint64_t n)
     const uint64_t c16 = ((c8 >> 8) + c8) & m8;
     const uint64_t c32 = (c16 >> 16) + c16;
     const uint64_t c64 = (uint64_t)(((c32 >> 32) + c32) & 0x7f);
-    t                  = (c32)&0x3f;
+    t                  = (c32) & 0x3f;
     if (i >= t) {
         r += 32;
         i -= t;

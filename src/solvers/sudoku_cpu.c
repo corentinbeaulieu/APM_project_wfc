@@ -26,7 +26,6 @@ solve(wfc_blocks_ptr blocks)
 
         // Check for error
         if (!choice) {
-            fprintf(stderr, " Error at iteration %lu\n", iteration);
             return false;
         }
 
@@ -41,12 +40,13 @@ solve(wfc_blocks_ptr blocks)
 }
 
 bool
-solve_cpu(wfc_blocks_ptr init, wfc_args args, wfc_blocks_ptr *res)
+solve_cpu(wfc_blocks_ptr init, wfc_args args, wfc_blocks_ptr *res, uint64_t *const iterations)
 {
     bool solved                   = false;
     const uint64_t max_iterations = args.seeds.count;
 
     for (uint64_t i = 0; i < args.seeds.count; ++i) {
+        (*iterations)++;
         wfc_blocks_ptr tmp_blocks = NULL;
         const uint64_t seed       = args.seeds.start + i;
 
@@ -60,7 +60,8 @@ solve_cpu(wfc_blocks_ptr init, wfc_args args, wfc_blocks_ptr *res)
         }
 
         safe_free(tmp_blocks);
-        print_progress(i, max_iterations);
+        if (*(iterations) % 100 == 0)
+            print_progress(i, max_iterations);
     }
 
     return false;

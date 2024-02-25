@@ -17,6 +17,7 @@ print_help(const char *exec)
     puts("  -o folder   output folder to save solutions. adds the seed to the data file name.");
     puts("  -b          draw a box using utf8 box drawing caracter on output (default: off).");
     puts("  -p count    number of seeds that can be processed in parallel");
+    puts("  -t count    number of teams (OMP target)");
     puts("  -s seeds    seeds to use. can an integer or a range: `from-to`.");
 
     fprintf(stdout, "  -l solver   solver to use. possible values are:");
@@ -54,14 +55,15 @@ wfc_args
 wfc_parse_args(int argc, char **argv)
 {
     int opt;
-    seeds_info seeds                                           = { .count = 100, .start = 0 };
-    const char *output                                         = NULL;
-    bool box_drawing                                           = false;
-    uint64_t parallel                                          = 1;
-    bool (*solver)(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *) = NULL;
-    char *end                                                  = NULL;
+    seeds_info seeds                                                       = { .count = 100, .start = 0 };
+    const char *output                                                     = NULL;
+    bool box_drawing                                                       = false;
+    uint64_t parallel                                                      = 1;
+    uint64_t teams                                                         = 1;
+    bool (*solver)(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *, uint64_t *) = NULL;
+    char *end                                                              = NULL;
 
-    while ((opt = getopt(argc, argv, "hbs:o:l:p:")) != -1) {
+    while ((opt = getopt(argc, argv, "hbs:o:l:p:t:")) != -1) {
         switch (opt) {
         case 's': {
             const uint32_t from = to_u32(optarg, &end);
@@ -110,6 +112,18 @@ wfc_parse_args(int argc, char **argv)
             break;
         }
 
+        case 't': {
+            if ((teams = to_u32(optarg, &end)) <= 0) {
+                fputs("you must at least have one team of threads...", stderr);
+                fprintf(stderr, "invalid t argument %lu\n", parallel);
+                exit(EXIT_FAILURE);
+            } else if ('\0' != *end) {
+                fprintf(stderr, "invalid integer: %s\n", optarg);
+                exit(EXIT_FAILURE);
+            }
+            break;
+        }
+
         case 'o': {
             struct stat sb;
             if (stat(optarg, &sb) == 0 && S_ISDIR(sb.st_mode)) {
@@ -142,6 +156,7 @@ wfc_parse_args(int argc, char **argv)
         .seeds         = seeds,
         .output_folder = output,
         .parallel      = parallel,
+        .teams         = teams,
         .solver        = (NULL == solver) ? solvers[0].function : solver,
         .box_drawing   = box_drawing,
     };

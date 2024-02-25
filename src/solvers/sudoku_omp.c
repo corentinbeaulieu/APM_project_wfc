@@ -4,6 +4,7 @@
 #include "wfc.h"
 
 #include <omp.h>
+#include <stdatomic.h>
 #include "utils.h"
 
 static inline bool
@@ -27,7 +28,6 @@ solve(wfc_blocks_ptr blocks)
 
         // Check for error
         if (!choice) {
-            fprintf(stderr, " Error at iteration %lu\n", iteration);
             return false;
         }
 
@@ -42,10 +42,11 @@ solve(wfc_blocks_ptr blocks)
 }
 
 bool
-solve_openmp(wfc_blocks_ptr init, wfc_args args, wfc_blocks_ptr *res)
+solve_openmp(wfc_blocks_ptr init, wfc_args args, wfc_blocks_ptr *res, uint64_t *const iterations)
 {
     unsigned char quit            = false;
     unsigned char solved          = false;
+    _Atomic uint64_t iter         = *iterations;
     const uint64_t num_threads    = args.parallel;
     const uint64_t max_iterations = args.seeds.count;
 
@@ -60,6 +61,7 @@ solve_openmp(wfc_blocks_ptr init, wfc_args args, wfc_blocks_ptr *res)
                 wfc_blocks_ptr tmp_blocks = NULL;
                 wfc_clone_into(&tmp_blocks, seed, init);
                 bool _solved = solve(tmp_blocks);
+                atomic_fetch_add(&iter, 1);
 
                 if (_solved) {
 #pragma omp critical
@@ -76,9 +78,12 @@ solve_openmp(wfc_blocks_ptr init, wfc_args args, wfc_blocks_ptr *res)
             if (quit) {
                 i = args.seeds.count; // FIXME: hardcore break out of loop
             }
-            print_progress(i, max_iterations);
+            if (atomic_load(&iter) % 100 == 0)
+                print_progress(i, max_iterations);
         }
     }
+
+    *iterations = atomic_load(&iter);
 
     return solved;
 }

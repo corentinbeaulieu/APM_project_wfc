@@ -8,3 +8,5 @@
 /// md5(&ze_struct, sizeof(the_struct), digest);
 /// ```
 void md5(uint8_t *const restrict, uint32_t, uint8_t *restrict);
+
+void md5_target(uint8_t *const restrict, uint32_t, uint8_t *restrict);

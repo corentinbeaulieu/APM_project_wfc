@@ -3,7 +3,7 @@ extern "C" {
 #include "utils.h"
 
 bool
-solve_cuda(wfc_blocks_ptr init, wfc_args args, wfc_blocks_ptr *res);
+solve_cuda(wfc_blocks_ptr init, wfc_args args, wfc_blocks_ptr *res, uint64_t *iterations);
 } /* extern "C" */
 
 #include "wfc.cuh"
@@ -49,7 +49,7 @@ solve(uint64_t *states, uint64_t grid_size, uint64_t block_size, int *solved)
 }
 
 bool
-solve_cuda(wfc_blocks_ptr init, wfc_args args, wfc_blocks_ptr *res)
+solve_cuda(wfc_blocks_ptr init, wfc_args args, wfc_blocks_ptr *res, uint64_t *iterations)
 {
     bool solved                   = false;
     const uint64_t max_iterations = args.seeds.count;
@@ -69,6 +69,7 @@ solve_cuda(wfc_blocks_ptr init, wfc_args args, wfc_blocks_ptr *res)
         solve<<<1, 1>>>(d_states, grid_size, block_size, d_solved);
         cudaMemcpy(&tmp_solved, d_solved, sizeof(tmp_solved), cudaMemcpyDeviceToHost);
 
+        (*iterations)++;
         solved |= tmp_solved;
         if (solved) {
             printf("Solved at iteration %lu\n", i);

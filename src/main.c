@@ -17,12 +17,12 @@ main(int argc, char *argv[])
     wfc_blocks_ptr init = wfc_load(0, args.data_file);
     wfc_blocks_ptr res  = NULL;
 
-    _Atomic uint64_t iterations = 0;
+    uint64_t iterations = 0;
 
     const uint64_t max_iterations = args.seeds.count;
     const double start            = omp_get_wtime();
 
-    bool solved = args.solver(init, args, &res);
+    const bool solved = args.solver(init, args, &res, &iterations);
 
     const double stop = omp_get_wtime();
 
@@ -41,8 +41,8 @@ main(int argc, char *argv[])
     }
 
     fprintf(stdout, "%9lu / %9lu = %6.2f%% ➜ %.16f s\n",
-            atomic_load(&iterations), max_iterations,
-            ((double)(atomic_load(&iterations)) / (double)(max_iterations)) * 100.0,
+            iterations, max_iterations,
+            ((double)(iterations) / (double)(max_iterations)) * 100.0,
             stop - start);
 
     safe_free(init);
