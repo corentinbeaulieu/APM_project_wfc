@@ -26,7 +26,7 @@ wfc: $(OBJ) $(OBJ_CUDA) dlink.o
 	$(CC) $(LDFLAGS) -o $@ $^
 
 clean:
-	rm -f $(OBJ) dlink.o
+	rm -f $(OBJ) $(OBJ_CUDA) dlink.o
 
 clear: clean
 	rm -f $(TARGETS)
