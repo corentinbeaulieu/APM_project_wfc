@@ -76,6 +76,7 @@ wfc_parse_args(int argc, char **argv)
                     fprintf(stderr, "invalid range: %u >= %u\n", from, to);
                     exit(EXIT_FAILURE);
                 }
+                seeds.start = from;
                 seeds.count = to - from + 1;
             } else {
                 fprintf(stderr, "invalid range delimiter: '%c'\n", *end);
