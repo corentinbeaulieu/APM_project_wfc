@@ -2,8 +2,6 @@
 
 #include "types.h"
 
-__host__ void wfc_clone_into(const wfc_blocks *tmp_blocks, const uint64_t seed, uint64_t *d_states);
-
 __device__ entropy_location grd_min_entropy(uint64_t *states, uint64_t grid_size, uint64_t block_size);
 __device__ uint64_t entropy_collapse_state(uint64_t choice, uint32_t gx, uint32_t gy, uint32_t x, uint32_t y, uint64_t seed, uint64_t iteration);
 __device__ void propagate(uint64_t *states, uint64_t grid_size, uint64_t block_size, uint32_t gx, uint32_t gy, uint32_t x, uint32_t y, uint64_t new_state);

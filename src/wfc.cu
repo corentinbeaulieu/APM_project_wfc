@@ -3,17 +3,6 @@
 #include "wfc.cuh"
 #include "md5.cuh"
 
-__host__ void
-wfc_clone_into(const wfc_blocks *init, const uint64_t seed, uint64_t *d_states)
-{
-    const uint64_t block_size = init->block_side;
-    const uint64_t grid_size  = init->grid_side;
-    const uint64_t size       = 3 * block_size * block_size + 2 + wfc_control_states_count(grid_size, block_size);
-
-    init->states[0] = seed;
-    cudaMemcpy(d_states, init->states, size * sizeof(uint64_t), cudaMemcpyHostToDevice);
-}
-
 __device__ static uint64_t
 possible_states(uint64_t *states, uint64_t grid_side, uint64_t block_side, uint32_t gx, uint32_t gy, uint32_t x, uint32_t y)
 {
@@ -47,13 +36,21 @@ entropy_compute(const uint64_t state)
 __device__ entropy_location
 grd_min_entropy(uint64_t *states, uint64_t grid_side, uint64_t block_side)
 {
-    entropy_location ret = { 0 };
-    ret.entropy          = UINT8_MAX;
+    const uint64_t tid        = threadIdx.x;
+    const uint64_t nb_threads = blockDim.x;
+    __shared__ entropy_location ret[32];
+
+    ret[tid].location.x      = 0;
+    ret[tid].location.y      = 0;
+    ret[tid].grid_location.x = 0;
+    ret[tid].grid_location.y = 0;
+    ret[tid].choice          = 0;
+    ret[tid].entropy         = UINT8_MAX;
 
     /*
      * Find a non-final state that has the lowest entropy.
      */
-    for (uint32_t gy = 0; gy < grid_side; ++gy) {
+    for (uint32_t gy = tid; gy < grid_side; gy += nb_threads) {
         for (uint32_t gx = 0; gx < grid_side; ++gx) {
             for (uint32_t y = 0; y < block_side; ++y) {
                 for (uint32_t x = 0; x < block_side; ++x) {
@@ -61,13 +58,13 @@ grd_min_entropy(uint64_t *states, uint64_t grid_side, uint64_t block_side)
                         const uint64_t choice = possible_states(states, grid_side, block_side, gx, gy, x, y);
                         const uint8_t entropy = entropy_compute(choice);
 
-                        if (entropy < ret.entropy) {
-                            ret.location.x      = x;
-                            ret.location.y      = y;
-                            ret.grid_location.x = gx;
-                            ret.grid_location.y = gy;
-                            ret.choice          = choice;
-                            ret.entropy         = entropy;
+                        if (entropy < ret[tid].entropy) {
+                            ret[tid].location.x      = x;
+                            ret[tid].location.y      = y;
+                            ret[tid].grid_location.x = gx;
+                            ret[tid].grid_location.y = gy;
+                            ret[tid].choice          = choice;
+                            ret[tid].entropy         = entropy;
                         }
                     }
                 }
@@ -75,7 +72,15 @@ grd_min_entropy(uint64_t *states, uint64_t grid_side, uint64_t block_side)
         }
     }
 
-    return ret;
+    __syncthreads();
+
+    // Find the minimum entropy
+    if (tid == 0)
+        for (uint64_t i = 1; i < nb_threads; ++i)
+            if (ret[i].entropy < ret[0].entropy)
+                ret[0] = ret[i];
+
+    return ret[0];
 }
 
 __device__ static inline uint64_t
