@@ -110,7 +110,7 @@ bool solve_cpu(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *);
 bool solve_openmp(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *);
 bool solve_target(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *);
 #if defined(WFC_CUDA)
-bool solve_cuda(wfc_blocks_ptr);
+bool solve_cuda(wfc_blocks_ptr, wfc_args, wfc_blocks_ptr *);
 #endif
 
 static const wfc_solver solvers[] = {
